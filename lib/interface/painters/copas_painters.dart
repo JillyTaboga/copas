@@ -1,3 +1,4 @@
+import 'package:copas/domain/entities/simbols.dart';
 import 'package:flutter/material.dart';
 
 class CopasPainter extends CustomPainter {
@@ -5,7 +6,7 @@ class CopasPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    const color = Colors.red;
+    final color = Symbol.heart.color;
     final mid = size.width / 2;
     final heartHeight = size.height / 3;
     final paint = Paint()

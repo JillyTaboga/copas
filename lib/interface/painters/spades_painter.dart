@@ -1,3 +1,4 @@
+import 'package:copas/domain/entities/simbols.dart';
 import 'package:flutter/material.dart';
 
 class SpadesPainter extends CustomPainter {
@@ -6,7 +7,7 @@ class SpadesPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = Colors.blue
+      ..color = Symbol.spades.color
       ..style = PaintingStyle.fill;
     final mid = size.width / 2;
     final spadesHeight = size.height / 3 * 2;

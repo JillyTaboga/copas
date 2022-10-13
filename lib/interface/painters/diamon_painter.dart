@@ -1,3 +1,4 @@
+import 'package:copas/domain/entities/simbols.dart';
 import 'package:flutter/material.dart';
 
 class DiamondPainter extends CustomPainter {
@@ -5,7 +6,7 @@ class DiamondPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = Colors.amber
+      ..color = Symbol.diamond.color
       ..style = PaintingStyle.fill;
     final path = Path()..moveTo(size.width / 2, 0);
     path.lineTo(size.width / 6 * 5, size.height / 2);

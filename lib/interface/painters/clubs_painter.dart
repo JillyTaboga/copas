@@ -1,3 +1,4 @@
+import 'package:copas/domain/entities/simbols.dart';
 import 'package:flutter/material.dart';
 
 class ClubsPainter extends CustomPainter {
@@ -5,7 +6,7 @@ class ClubsPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    const color = Colors.black;
+    final color = Symbol.clubs.color;
     final mid = size.width / 2;
     final clubsHeight = size.height / 2;
     final radius = size.width / 3 / 2;

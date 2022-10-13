@@ -1,124 +1,205 @@
-import 'dart:math';
-
-import 'package:copas/data/cards_data.dart';
-import 'package:copas/domain/entities/card_entity.dart';
-import 'package:copas/domain/entities/hand_entity.dart';
-import 'package:copas/interface/widgets/card_widget.dart';
+import 'package:copas/domain/entities/game_phases.dart';
+import 'package:copas/interface/controllers/deck_controller.dart';
+import 'package:copas/interface/controllers/game_controller.dart';
+import 'package:copas/interface/controllers/hand_controller.dart';
+import 'package:copas/interface/widgets/card_back.dart';
+import 'package:copas/interface/widgets/hand_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+
+final screenSizeProvider = StateProvider<Size>((ref) {
+  return Size.zero;
+});
+
+final cardSizeProvider = Provider<Size>(
+  (ref) {
+    final screenSize = ref.watch(screenSizeProvider);
+    if (screenSize == Size.zero) return screenSize;
+    final maxHeightByHeight = (screenSize.height / 3) - 40;
+    final maxHeightByWidth =
+        ((screenSize.width / 2)) - ((((screenSize.width / 2)) * 0.6) / 2);
+    final realHeight = maxHeightByWidth > maxHeightByHeight
+        ? maxHeightByHeight
+        : maxHeightByWidth;
+    final realWidht = realHeight * 0.6;
+    return Size(realWidht, realHeight);
+  },
+);
 
 class GameScreen extends HookConsumerWidget {
   const GameScreen({super.key});
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
-      body: LayoutBuilder(builder: (context, constraints) {
-        return Container(
-          color: Colors.yellow,
-          width: constraints.maxWidth,
-          height: 300,
-          child: HandWidget(
-            hand: ref.watch(handProvider),
-            width: constraints.maxWidth,
-            onCardClick: (card) {
-              final currentHand = ref.read(handProvider);
-              var newCards = [...currentHand.cards];
-              newCards.remove(card);
-              ref.read(handProvider.notifier).state =
-                  currentHand.copyWith(cards: newCards);
-            },
-          ),
-        );
-      }),
+      backgroundColor: Colors.green.shade800,
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final size = Size(constraints.maxWidth, constraints.maxHeight);
+          final currentSize = ref.watch(screenSizeProvider);
+          if (size != currentSize) {
+            WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+              ref.read(screenSizeProvider.notifier).state = size;
+            });
+          }
+          return const GameCenter();
+        },
+      ),
     );
   }
 }
 
-final handProvider = StateProvider<HandEntity>((ref) {
-  return HandEntity(
-    handSize: 12,
-    cards: randomDeck().sublist(0, 12),
-  );
-});
-
-class HandWidget extends StatelessWidget {
-  const HandWidget({
-    super.key,
-    required this.hand,
-    required this.width,
-    required this.onCardClick,
-  });
-
-  final HandEntity hand;
-  final double width;
-  final Function(CardEntity card) onCardClick;
+class GameCenter extends HookConsumerWidget {
+  const GameCenter({
+    Key? key,
+  }) : super(key: key);
 
   @override
-  Widget build(BuildContext context) {
-    var sortedHand = [...hand.cards];
-    sortedHand.sort(
-      (a, b) => a.value.value.compareTo(b.value.value),
-    );
-    sortedHand.sort((a, b) => a.symbol.hashCode.compareTo(b.symbol.hashCode));
-    return CustomMultiChildLayout(
-      delegate: HandDelegate(hand),
-      children: sortedHand
-          .map((e) => LayoutId(
-                id: sortedHand.indexOf(e),
-                child: Transform.rotate(
-                  alignment: Alignment.bottomLeft,
-                  angle: sortedHand.length < 2
-                      ? 0
-                      : (-45 +
-                              (sortedHand.indexOf(e) *
-                                  (90 / (sortedHand.length)))) *
-                          pi /
-                          180,
-                  child: InkWell(
-                    onTap: () {
-                      onCardClick(e);
-                    },
-                    child: CardWidget(
-                      card: e,
+  Widget build(BuildContext context, ref) {
+    final matchPhase = ref.watch(matchProvider);
+    final screenSize = ref.watch(screenSizeProvider);
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 300),
+      child: (matchPhase == MatchPhase.start ||
+              matchPhase == MatchPhase.distributing)
+          ? const DistributingWidget()
+          : Stack(
+              fit: StackFit.expand,
+              children: [
+                const Center(
+                  child: PlayerHandWidget(
+                    playerId: 1,
+                  ),
+                ),
+                Center(
+                  child: AnimatedSlide(
+                    duration: const Duration(milliseconds: 200),
+                    offset: const Offset(-0.2, 0),
+                    child: AnimatedRotation(
+                      turns: 0.25,
+                      duration: const Duration(milliseconds: 300),
+                      child: SizedBox(
+                        height: screenSize.width,
+                        child: const PlayerHandWidget(
+                          playerId: 2,
+                        ),
+                      ),
                     ),
                   ),
                 ),
-              ))
-          .toList(),
+                const AnimatedRotation(
+                  turns: 0.50,
+                  duration: Duration(milliseconds: 300),
+                  child: PlayerHandWidget(
+                    playerId: 3,
+                  ),
+                ),
+                Center(
+                  child: AnimatedSlide(
+                    duration: const Duration(milliseconds: 200),
+                    offset: const Offset(0.2, 0),
+                    child: AnimatedRotation(
+                      turns: 0.75,
+                      duration: const Duration(milliseconds: 300),
+                      child: SizedBox(
+                        height: screenSize.width,
+                        child: const PlayerHandWidget(
+                          playerId: 4,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
     );
   }
 }
 
-class HandDelegate extends MultiChildLayoutDelegate {
-  HandDelegate(this.hand);
-  final HandEntity hand;
-  @override
-  void performLayout(Size size) {
-    for (int n = 0; n < hand.cards.length; n++) {
-      final card = hand.cards[n];
-      final cardHeight = size.height / 3 * 2;
-      final radius = (size.width / hand.cards.length * 1.5) / 2;
-      final cardSize = layoutChild(
-          n,
-          BoxConstraints(
-            maxHeight: cardHeight,
-          ));
-      if (hand.cards.length <= 1) {
-        positionChild(n, const Offset(0, 0));
-        return;
-      }
-      final cardAngle =
-          ((hand.cards.length * 10) - (n * (10 * hand.cards.length))) *
-              pi /
-              180;
-      final x = radius * cos(cardAngle) + (size.width / 2);
-      final y = radius * (sin(cardAngle) * -1) + (size.width / 2);
-      positionChild(n, Offset(x, y));
-    }
-  }
+class DistributingWidget extends HookConsumerWidget {
+  const DistributingWidget({
+    Key? key,
+  }) : super(key: key);
 
   @override
-  bool shouldRelayout(covariant MultiChildLayoutDelegate oldDelegate) {
-    return false;
+  Widget build(BuildContext context, ref) {
+    final cardSize = ref.watch(cardSizeProvider);
+    final screenSize = ref.watch(screenSizeProvider);
+    final matchPhase = ref.watch(matchProvider);
+    return Stack(
+      children: [
+        ...ref
+            .watch(deckProvider)
+            .map(
+              (e) => AnimatedAlign(
+                duration: const Duration(milliseconds: 100),
+                alignment: e.position == 0
+                    ? Alignment.center
+                    : e.position == 1
+                        ? Alignment.bottomCenter
+                        : e.position == 2
+                            ? Alignment.centerRight
+                            : e.position == 3
+                                ? Alignment.topCenter
+                                : Alignment.centerLeft,
+                child: AnimatedRotation(
+                  duration: const Duration(milliseconds: 100),
+                  turns: (e.position == 0 || e.position == 1)
+                      ? 0
+                      : e.position == 2
+                          ? 0.25
+                          : e.position == 3
+                              ? 0.5
+                              : 0.75,
+                  child: CardBackWidget(
+                    cardSize: ref.watch(cardSizeProvider),
+                  ),
+                ),
+              ),
+            )
+            .toList(),
+        if (matchPhase == MatchPhase.start)
+          Positioned(
+            top: (screenSize.height / 2) + (cardSize.height / 2) + 10,
+            child: SizedBox(
+              width: screenSize.width,
+              child: Align(
+                alignment: Alignment.center,
+                child: ElevatedButton(
+                  onPressed: () {
+                    ref.read(matchProvider.notifier).deal();
+                  },
+                  child: const Text('Dar as cartas'),
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class PlayerHandWidget extends HookConsumerWidget {
+  const PlayerHandWidget({
+    Key? key,
+    required this.playerId,
+  }) : super(key: key);
+
+  final int playerId;
+
+  @override
+  Widget build(BuildContext context, ref) {
+    final hand = ref.watch(handProvider(playerId));
+    final handNotifier = ref.watch(handProvider(playerId).notifier);
+    return HandWidget(
+      hand: hand,
+      isPlayer: playerId == 1,
+      onCardClick: playerId == 1
+          ? (card) {
+              var newCards = [...hand.cards];
+              newCards.remove(card);
+              handNotifier.state = hand.copyWith(cards: newCards);
+            }
+          : null,
+    );
   }
 }
