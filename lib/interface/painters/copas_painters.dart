@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 class CopasPainter extends CustomPainter {
+  const CopasPainter();
+
   @override
   void paint(Canvas canvas, Size size) {
     const color = Colors.red;

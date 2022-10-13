@@ -1,8 +1,9 @@
+import 'dart:math';
+
 import 'package:copas/data/cards_data.dart';
-import 'package:copas/domain/entities/card_values.dart';
-import 'package:copas/domain/entities/simbols.dart';
-import 'package:copas/interface/painters/copas_painters.dart';
-import 'package:copas/interface/widgets/card_shadows.dart';
+import 'package:copas/domain/entities/card_entity.dart';
+import 'package:copas/domain/entities/hand_entity.dart';
+import 'package:copas/interface/widgets/card_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
@@ -12,122 +13,112 @@ class GameScreen extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       body: LayoutBuilder(builder: (context, constraints) {
-        return Wrap(
-          children: deck.map((e) {
-            return SizedBox(
-              width: constraints.maxWidth / 10,
-              height: constraints.maxWidth / 10 * 1.5,
-              child: CardWidget(
-                symbol: e.symbol,
-                value: e.value,
-              ),
-            );
-          }).toList(),
+        return Container(
+          color: Colors.yellow,
+          width: constraints.maxWidth,
+          height: 300,
+          child: HandWidget(
+            hand: ref.watch(handProvider),
+            width: constraints.maxWidth,
+            onCardClick: (card) {
+              final currentHand = ref.read(handProvider);
+              var newCards = [...currentHand.cards];
+              newCards.remove(card);
+              ref.read(handProvider.notifier).state =
+                  currentHand.copyWith(cards: newCards);
+            },
+          ),
         );
       }),
     );
   }
 }
 
-final _cardHoverProvider = StateProvider<bool>((ref) {
-  return false;
+final handProvider = StateProvider<HandEntity>((ref) {
+  return HandEntity(
+    handSize: 12,
+    cards: randomDeck().sublist(0, 12),
+  );
 });
 
-class CardWidget extends HookConsumerWidget {
-  const CardWidget({
-    Key? key,
-    required this.symbol,
-    required this.value,
-  }) : super(key: key);
+class HandWidget extends StatelessWidget {
+  const HandWidget({
+    super.key,
+    required this.hand,
+    required this.width,
+    required this.onCardClick,
+  });
 
-  final CardValue value;
-  final Symbol symbol;
+  final HandEntity hand;
+  final double width;
+  final Function(CardEntity card) onCardClick;
 
   @override
-  Widget build(BuildContext context, ref) {
-    return LayoutBuilder(builder: (context, constraints) {
-      final widht = constraints.maxWidth;
-      final height = widht * 1.5;
-      final isHover = ref.watch(_cardHoverProvider);
-      return MouseRegion(
-        onEnter: (event) {
-          if (!isHover) {
-            ref.read(_cardHoverProvider.notifier).state = true;
-          }
-        },
-        onExit: (event) {
-          if (isHover) {
-            ref.read(_cardHoverProvider.notifier).state = false;
-          }
-        },
-        child: Container(
-          height: height,
-          width: widht,
-          clipBehavior: Clip.antiAlias,
-          padding: EdgeInsets.all(widht / 20),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            border: Border.all(color: Colors.black, width: 1),
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              CardShadow(
-                onHover: isHover,
-                symbol: symbol,
-                size: widht,
-              ),
-            ],
-          ),
-          child: Container(
-            padding: EdgeInsets.symmetric(horizontal: widht / 25),
-            width: double.maxFinite,
-            height: double.maxFinite,
-            decoration: BoxDecoration(
-              color: Colors.grey.shade200,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: Colors.black54, width: 0.2),
-            ),
-            child: Column(
-              children: [
-                Align(
-                  alignment: Alignment.topLeft,
-                  child: Text(
-                    value.label,
-                    style: TextStyle(
-                      fontSize: widht / 5,
-                      fontWeight: FontWeight.bold,
-                      color: symbol.color,
+  Widget build(BuildContext context) {
+    var sortedHand = [...hand.cards];
+    sortedHand.sort(
+      (a, b) => a.value.value.compareTo(b.value.value),
+    );
+    sortedHand.sort((a, b) => a.symbol.hashCode.compareTo(b.symbol.hashCode));
+    return CustomMultiChildLayout(
+      delegate: HandDelegate(hand),
+      children: sortedHand
+          .map((e) => LayoutId(
+                id: sortedHand.indexOf(e),
+                child: Transform.rotate(
+                  alignment: Alignment.bottomLeft,
+                  angle: sortedHand.length < 2
+                      ? 0
+                      : (-45 +
+                              (sortedHand.indexOf(e) *
+                                  (90 / (sortedHand.length)))) *
+                          pi /
+                          180,
+                  child: InkWell(
+                    onTap: () {
+                      onCardClick(e);
+                    },
+                    child: CardWidget(
+                      card: e,
                     ),
                   ),
                 ),
-                Expanded(
-                  child: Center(
-                    child: SizedBox.square(
-                      dimension: widht / 3,
-                      child: CustomPaint(
-                        painter: CopasPainter(),
-                      ),
-                    ),
-                  ),
-                ),
-                Align(
-                  alignment: Alignment.bottomRight,
-                  child: Transform.scale(
-                    scale: -1,
-                    child: Text(
-                      value.label,
-                      style: TextStyle(
-                        fontSize: widht / 5,
-                        fontWeight: FontWeight.bold,
-                        color: symbol.color,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-    });
+              ))
+          .toList(),
+    );
+  }
+}
+
+class HandDelegate extends MultiChildLayoutDelegate {
+  HandDelegate(this.hand);
+  final HandEntity hand;
+  @override
+  void performLayout(Size size) {
+    for (int n = 0; n < hand.cards.length; n++) {
+      final card = hand.cards[n];
+      final cardHeight = size.height / 3 * 2;
+      final radius = (size.width / hand.cards.length * 1.5) / 2;
+      final cardSize = layoutChild(
+          n,
+          BoxConstraints(
+            maxHeight: cardHeight,
+          ));
+      if (hand.cards.length <= 1) {
+        positionChild(n, const Offset(0, 0));
+        return;
+      }
+      final cardAngle =
+          ((hand.cards.length * 10) - (n * (10 * hand.cards.length))) *
+              pi /
+              180;
+      final x = radius * cos(cardAngle) + (size.width / 2);
+      final y = radius * (sin(cardAngle) * -1) + (size.width / 2);
+      positionChild(n, Offset(x, y));
+    }
+  }
+
+  @override
+  bool shouldRelayout(covariant MultiChildLayoutDelegate oldDelegate) {
+    return false;
   }
 }
