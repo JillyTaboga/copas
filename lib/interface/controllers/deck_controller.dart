@@ -37,7 +37,6 @@ class DeckNotifier extends StateNotifier<List<DealingCard>> {
       }
     }
     ref.read(handProvider(1).notifier).state = HandEntity(
-      handSize: 12,
       cards: state
           .where((element) => element.position == 1)
           .toList()
@@ -45,7 +44,6 @@ class DeckNotifier extends StateNotifier<List<DealingCard>> {
           .toList(),
     );
     ref.read(handProvider(2).notifier).state = HandEntity(
-      handSize: 12,
       cards: state
           .where((element) => element.position == 2)
           .toList()
@@ -53,7 +51,6 @@ class DeckNotifier extends StateNotifier<List<DealingCard>> {
           .toList(),
     );
     ref.read(handProvider(3).notifier).state = HandEntity(
-      handSize: 12,
       cards: state
           .where((element) => element.position == 3)
           .toList()
@@ -61,7 +58,6 @@ class DeckNotifier extends StateNotifier<List<DealingCard>> {
           .toList(),
     );
     ref.read(handProvider(4).notifier).state = HandEntity(
-      handSize: 12,
       cards: state
           .where((element) => element.position == 4)
           .toList()

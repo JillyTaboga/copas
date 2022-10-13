@@ -1,8 +1,7 @@
 import 'package:copas/domain/entities/game_phases.dart';
-import 'package:copas/interface/controllers/deck_controller.dart';
 import 'package:copas/interface/controllers/game_controller.dart';
-import 'package:copas/interface/controllers/hand_controller.dart';
-import 'package:copas/interface/widgets/card_back.dart';
+import 'package:copas/interface/widgets/card_widget.dart';
+import 'package:copas/interface/widgets/distributing_widget.dart';
 import 'package:copas/interface/widgets/hand_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -56,150 +55,183 @@ class GameCenter extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, ref) {
     final matchPhase = ref.watch(matchProvider);
+    final turnPhase = ref.watch(turnPhaseProvider);
     final screenSize = ref.watch(screenSizeProvider);
+    final directionPhase = ref.watch(passTypeProvider);
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 300),
       child: (matchPhase == MatchPhase.start ||
               matchPhase == MatchPhase.distributing)
           ? const DistributingWidget()
           : Stack(
-              fit: StackFit.expand,
               children: [
-                const Center(
-                  child: PlayerHandWidget(
-                    playerId: 1,
-                  ),
-                ),
-                Center(
-                  child: AnimatedSlide(
-                    duration: const Duration(milliseconds: 200),
-                    offset: const Offset(-0.2, 0),
-                    child: AnimatedRotation(
-                      turns: 0.25,
-                      duration: const Duration(milliseconds: 300),
-                      child: SizedBox(
-                        height: screenSize.width,
-                        child: const PlayerHandWidget(
-                          playerId: 2,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                const AnimatedRotation(
-                  turns: 0.50,
-                  duration: Duration(milliseconds: 300),
-                  child: PlayerHandWidget(
-                    playerId: 3,
-                  ),
-                ),
-                Center(
-                  child: AnimatedSlide(
-                    duration: const Duration(milliseconds: 200),
-                    offset: const Offset(0.2, 0),
-                    child: AnimatedRotation(
-                      turns: 0.75,
-                      duration: const Duration(milliseconds: 300),
-                      child: SizedBox(
-                        height: screenSize.width,
-                        child: const PlayerHandWidget(
-                          playerId: 4,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
+                HandsCenter(screenSize: screenSize),
+                if (matchPhase == MatchPhase.playing &&
+                    turnPhase == TurnPhase.start)
+                  PassWidget(directionPhase: directionPhase)
               ],
             ),
     );
   }
 }
 
-class DistributingWidget extends HookConsumerWidget {
-  const DistributingWidget({
+class PassWidget extends HookConsumerWidget {
+  const PassWidget({
     Key? key,
+    required this.directionPhase,
   }) : super(key: key);
+
+  final PassType directionPhase;
 
   @override
   Widget build(BuildContext context, ref) {
-    final cardSize = ref.watch(cardSizeProvider);
-    final screenSize = ref.watch(screenSizeProvider);
-    final matchPhase = ref.watch(matchProvider);
-    return Stack(
+    final cardsToPass = ref.watch(cardsToPassProvider);
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        ...ref
-            .watch(deckProvider)
-            .map(
-              (e) => AnimatedAlign(
-                duration: const Duration(milliseconds: 100),
-                alignment: e.position == 0
-                    ? Alignment.center
-                    : e.position == 1
-                        ? Alignment.bottomCenter
-                        : e.position == 2
-                            ? Alignment.centerRight
-                            : e.position == 3
-                                ? Alignment.topCenter
-                                : Alignment.centerLeft,
-                child: AnimatedRotation(
-                  duration: const Duration(milliseconds: 100),
-                  turns: (e.position == 0 || e.position == 1)
-                      ? 0
-                      : e.position == 2
-                          ? 0.25
-                          : e.position == 3
-                              ? 0.5
-                              : 0.75,
-                  child: CardBackWidget(
-                    cardSize: ref.watch(cardSizeProvider),
-                  ),
-                ),
+        const Spacer(),
+        MessageDialog(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Selecione 3 cartas para passar para um adversário',
+                textAlign: TextAlign.center,
               ),
-            )
-            .toList(),
-        if (matchPhase == MatchPhase.start)
-          Positioned(
-            top: (screenSize.height / 2) + (cardSize.height / 2) + 10,
-            child: SizedBox(
-              width: screenSize.width,
-              child: Align(
-                alignment: Alignment.center,
-                child: ElevatedButton(
-                  onPressed: () {
-                    ref.read(matchProvider.notifier).deal();
-                  },
-                  child: const Text('Dar as cartas'),
-                ),
+              const SizedBox(
+                height: 3,
               ),
-            ),
+              Icon(
+                directionPhase == PassType.front
+                    ? Icons.arrow_drop_up
+                    : directionPhase == PassType.right
+                        ? Icons.arrow_right
+                        : Icons.arrow_left,
+                size: 50,
+                color: Colors.green,
+              ),
+            ],
           ),
+        ),
+        const SizedBox(
+          height: 20,
+        ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: cardsToPass
+              .map((e) => CardWidget(
+                    card: e,
+                    isHover: false,
+                    onCardTap: (card) {
+                      ref.read(cardsToPassProvider.notifier).removeCard(e);
+                    },
+                  ))
+              .toList(),
+        ),
+        if (cardsToPass.length == 3) ...[
+          const SizedBox(
+            height: 20,
+          ),
+          ElevatedButton(
+            onPressed: () {
+              ref.read(cardsToPassProvider.notifier).pass();
+            },
+            child: const Text('Confirmar'),
+          ),
+        ],
+        Container(
+          constraints: BoxConstraints(
+              minHeight: ref.watch(cardSizeProvider).height + 20),
+        ),
       ],
     );
   }
 }
 
-class PlayerHandWidget extends HookConsumerWidget {
-  const PlayerHandWidget({
+class MessageDialog extends StatelessWidget {
+  const MessageDialog({
     Key? key,
-    required this.playerId,
+    this.child,
   }) : super(key: key);
 
-  final int playerId;
+  final Widget? child;
 
   @override
-  Widget build(BuildContext context, ref) {
-    final hand = ref.watch(handProvider(playerId));
-    final handNotifier = ref.watch(handProvider(playerId).notifier);
-    return HandWidget(
-      hand: hand,
-      isPlayer: playerId == 1,
-      onCardClick: playerId == 1
-          ? (card) {
-              var newCards = [...hand.cards];
-              newCards.remove(card);
-              handNotifier.state = hand.copyWith(cards: newCards);
-            }
-          : null,
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: Alignment.center,
+      child: Container(
+        padding: const EdgeInsets.all(15),
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.black, width: 1),
+          boxShadow: kElevationToShadow[3],
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+        ),
+        child: child,
+      ),
+    );
+  }
+}
+
+class HandsCenter extends StatelessWidget {
+  const HandsCenter({
+    Key? key,
+    required this.screenSize,
+  }) : super(key: key);
+
+  final Size screenSize;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        const Center(
+          child: PlayerHandWidget(
+            playerId: 1,
+          ),
+        ),
+        Center(
+          child: AnimatedSlide(
+            duration: const Duration(milliseconds: 200),
+            offset: const Offset(-0.2, 0),
+            child: AnimatedRotation(
+              turns: 0.25,
+              duration: const Duration(milliseconds: 300),
+              child: SizedBox(
+                height: screenSize.width,
+                child: const PlayerHandWidget(
+                  playerId: 2,
+                ),
+              ),
+            ),
+          ),
+        ),
+        const AnimatedRotation(
+          turns: 0.50,
+          duration: Duration(milliseconds: 300),
+          child: PlayerHandWidget(
+            playerId: 3,
+          ),
+        ),
+        Center(
+          child: AnimatedSlide(
+            duration: const Duration(milliseconds: 200),
+            offset: const Offset(0.2, 0),
+            child: AnimatedRotation(
+              turns: 0.75,
+              duration: const Duration(milliseconds: 300),
+              child: SizedBox(
+                height: screenSize.width,
+                child: const PlayerHandWidget(
+                  playerId: 4,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

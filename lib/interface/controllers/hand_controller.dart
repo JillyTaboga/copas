@@ -4,7 +4,6 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 final handProvider = StateProvider.family<HandEntity, int>((ref, player) {
   return const HandEntity(
-    handSize: 12,
     cards: [],
   );
 });

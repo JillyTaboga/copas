@@ -1,11 +1,42 @@
 import 'package:copas/domain/entities/card_entity.dart';
+import 'package:copas/domain/entities/game_phases.dart';
 import 'package:copas/domain/entities/hand_entity.dart';
+import 'package:copas/interface/controllers/game_controller.dart';
 import 'package:copas/interface/controllers/hand_controller.dart';
 import 'package:copas/interface/game_screen.dart';
 import 'package:copas/interface/widgets/card_back.dart';
 import 'package:copas/interface/widgets/card_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+
+class PlayerHandWidget extends HookConsumerWidget {
+  const PlayerHandWidget({
+    Key? key,
+    required this.playerId,
+  }) : super(key: key);
+
+  final int playerId;
+
+  @override
+  Widget build(BuildContext context, ref) {
+    final hand = ref.watch(handProvider(playerId));
+    final handNotifier = ref.watch(handProvider(playerId).notifier);
+    final matchPhase = ref.watch(matchProvider);
+    final turnPhase = ref.watch(turnPhaseProvider);
+    return HandWidget(
+      hand: hand,
+      isPlayer: playerId == 1,
+      onCardClick: playerId == 1
+          ? (card) {
+              if (matchPhase == MatchPhase.playing &&
+                  turnPhase == TurnPhase.start) {
+                ref.read(cardsToPassProvider.notifier).addCard(card);
+              }
+            }
+          : null,
+    );
+  }
+}
 
 class HandWidget extends HookConsumerWidget {
   const HandWidget({

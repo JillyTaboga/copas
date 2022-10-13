@@ -16,7 +16,6 @@ final _privateConstructorUsedError = UnsupportedError(
 
 /// @nodoc
 mixin _$HandEntity {
-  int get handSize => throw _privateConstructorUsedError;
   List<CardEntity> get cards => throw _privateConstructorUsedError;
 
   @JsonKey(ignore: true)
@@ -29,7 +28,7 @@ abstract class $HandEntityCopyWith<$Res> {
   factory $HandEntityCopyWith(
           HandEntity value, $Res Function(HandEntity) then) =
       _$HandEntityCopyWithImpl<$Res>;
-  $Res call({int handSize, List<CardEntity> cards});
+  $Res call({List<CardEntity> cards});
 }
 
 /// @nodoc
@@ -42,14 +41,9 @@ class _$HandEntityCopyWithImpl<$Res> implements $HandEntityCopyWith<$Res> {
 
   @override
   $Res call({
-    Object? handSize = freezed,
     Object? cards = freezed,
   }) {
     return _then(_value.copyWith(
-      handSize: handSize == freezed
-          ? _value.handSize
-          : handSize // ignore: cast_nullable_to_non_nullable
-              as int,
       cards: cards == freezed
           ? _value.cards
           : cards // ignore: cast_nullable_to_non_nullable
@@ -65,7 +59,7 @@ abstract class _$$_HandEntityCopyWith<$Res>
           _$_HandEntity value, $Res Function(_$_HandEntity) then) =
       __$$_HandEntityCopyWithImpl<$Res>;
   @override
-  $Res call({int handSize, List<CardEntity> cards});
+  $Res call({List<CardEntity> cards});
 }
 
 /// @nodoc
@@ -80,14 +74,9 @@ class __$$_HandEntityCopyWithImpl<$Res> extends _$HandEntityCopyWithImpl<$Res>
 
   @override
   $Res call({
-    Object? handSize = freezed,
     Object? cards = freezed,
   }) {
     return _then(_$_HandEntity(
-      handSize: handSize == freezed
-          ? _value.handSize
-          : handSize // ignore: cast_nullable_to_non_nullable
-              as int,
       cards: cards == freezed
           ? _value._cards
           : cards // ignore: cast_nullable_to_non_nullable
@@ -98,13 +87,11 @@ class __$$_HandEntityCopyWithImpl<$Res> extends _$HandEntityCopyWithImpl<$Res>
 
 /// @nodoc
 
-class _$_HandEntity implements _HandEntity {
-  const _$_HandEntity(
-      {required this.handSize, final List<CardEntity> cards = const []})
-      : _cards = cards;
+class _$_HandEntity extends _HandEntity {
+  const _$_HandEntity({final List<CardEntity> cards = const []})
+      : _cards = cards,
+        super._();
 
-  @override
-  final int handSize;
   final List<CardEntity> _cards;
   @override
   @JsonKey()
@@ -115,7 +102,7 @@ class _$_HandEntity implements _HandEntity {
 
   @override
   String toString() {
-    return 'HandEntity(handSize: $handSize, cards: $cards)';
+    return 'HandEntity(cards: $cards)';
   }
 
   @override
@@ -123,15 +110,12 @@ class _$_HandEntity implements _HandEntity {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
             other is _$_HandEntity &&
-            const DeepCollectionEquality().equals(other.handSize, handSize) &&
             const DeepCollectionEquality().equals(other._cards, _cards));
   }
 
   @override
-  int get hashCode => Object.hash(
-      runtimeType,
-      const DeepCollectionEquality().hash(handSize),
-      const DeepCollectionEquality().hash(_cards));
+  int get hashCode =>
+      Object.hash(runtimeType, const DeepCollectionEquality().hash(_cards));
 
   @JsonKey(ignore: true)
   @override
@@ -139,13 +123,10 @@ class _$_HandEntity implements _HandEntity {
       __$$_HandEntityCopyWithImpl<_$_HandEntity>(this, _$identity);
 }
 
-abstract class _HandEntity implements HandEntity {
-  const factory _HandEntity(
-      {required final int handSize,
-      final List<CardEntity> cards}) = _$_HandEntity;
+abstract class _HandEntity extends HandEntity {
+  const factory _HandEntity({final List<CardEntity> cards}) = _$_HandEntity;
+  const _HandEntity._() : super._();
 
-  @override
-  int get handSize;
   @override
   List<CardEntity> get cards;
   @override

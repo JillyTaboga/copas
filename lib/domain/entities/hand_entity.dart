@@ -5,8 +5,10 @@ part 'hand_entity.freezed.dart';
 
 @freezed
 class HandEntity with _$HandEntity {
+  const HandEntity._();
   const factory HandEntity({
-    required int handSize,
     @Default([]) List<CardEntity> cards,
   }) = _HandEntity;
+
+  int get handSize => cards.length;
 }
