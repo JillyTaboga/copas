@@ -67,6 +67,7 @@ class GameCenter extends HookConsumerWidget {
     final turnPhase = ref.watch(turnPhaseProvider);
     final screenSize = ref.watch(screenSizeProvider);
     final directionPhase = ref.watch(passTypeProvider);
+    final cardSize = ref.watch(cardSizeProvider);
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 300),
       child: (matchPhase == MatchPhase.start ||
@@ -78,9 +79,16 @@ class GameCenter extends HookConsumerWidget {
                 if (matchPhase == MatchPhase.playing) const TableCardsWidget(),
                 if (matchPhase == MatchPhase.playing &&
                     turnPhase == TurnPhase.playing) ...[
-                  MessageDialog(
-                    child: Text(
-                        'Turno do ${ref.watch(currentPlayerNameProvider)}'),
+                  Positioned(
+                    bottom: cardSize.height + 20,
+                    left: 0,
+                    right: 0,
+                    child: Center(
+                      child: MessageDialog(
+                        child: Text(
+                            'Turno do ${ref.watch(currentPlayerNameProvider)}'),
+                      ),
+                    ),
                   )
                 ],
                 if (matchPhase == MatchPhase.passing &&
@@ -116,12 +124,19 @@ class TableCardsWidget extends HookConsumerWidget {
               ...tableCards.map(
                 (e) {
                   final index = tableCards.indexOf(e);
-                  return AnimatedRotation(
-                    duration: const Duration(milliseconds: 100),
-                    turns: index * 0.2,
-                    child: CardWidget(
-                      card: e.card,
-                      isHover: false,
+                  return AnimatedSlide(
+                    duration: const Duration(milliseconds: 200),
+                    offset: Offset(
+                      index * 0.25,
+                      index * 0.05,
+                    ),
+                    child: AnimatedRotation(
+                      duration: const Duration(milliseconds: 100),
+                      turns: index * 0.03,
+                      child: CardWidget(
+                        card: e.card,
+                        isHover: false,
+                      ),
                     ),
                   );
                 },

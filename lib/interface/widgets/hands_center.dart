@@ -29,7 +29,7 @@ class HandsCenter extends StatelessWidget {
               child: SizedBox(
                 height: screenSize.width,
                 child: const PlayerHandWidget(
-                  playerId: 2,
+                  playerId: 4,
                 ),
               ),
             ),
@@ -52,7 +52,7 @@ class HandsCenter extends StatelessWidget {
               child: SizedBox(
                 height: screenSize.width,
                 child: const PlayerHandWidget(
-                  playerId: 4,
+                  playerId: 2,
                 ),
               ),
             ),

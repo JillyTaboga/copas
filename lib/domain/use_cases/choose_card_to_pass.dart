@@ -81,7 +81,6 @@ class CpuAi {
 
     play(CardEntity card) {
       playNotifier.playCard(currentPlayer, card);
-      ref.read(turnProvider.notifier).advance();
       return;
     }
 

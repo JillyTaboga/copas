@@ -1,4 +1,5 @@
 import 'package:copas/domain/entities/card_entity.dart';
+import 'package:copas/domain/entities/card_values.dart';
 import 'package:copas/domain/entities/game_phases.dart';
 import 'package:copas/domain/entities/simbols.dart';
 import 'package:copas/interface/controllers/game_controller.dart';
@@ -83,7 +84,7 @@ class TurnNotifier extends StateNotifier<int> {
       ref.read(turnPhaseProvider.notifier).state = TurnPhase.review;
     } else {
       int next = state + 1;
-      if (next == 4) {
+      if (next == 5) {
         next = 1;
       }
       state = next;
@@ -109,8 +110,7 @@ class CardsInTableNotifier extends StateNotifier<List<CardInTable>> {
     var cards = [...hand.cards];
     cards.remove(card);
     ref.read(handProvider(player).notifier).state = hand.copyWith(cards: cards);
-    final currentTurn = ref.read(turnProvider);
-
+    ref.read(turnProvider.notifier).advance();
     state = [
       ...state,
       CardInTable(
@@ -124,6 +124,39 @@ class CardsInTableNotifier extends StateNotifier<List<CardInTable>> {
 final tableSymbolProvider = Provider<Symbol?>((ref) {
   final currentTable = ref.watch(cardsInTableProvider);
   return currentTable.isEmpty ? null : currentTable.first.card.symbol;
+});
+
+final possibleCardsProvider = Provider<List<CardEntity>>((ref) {
+  final currentTurn = ref.watch(turnProvider);
+  if (currentTurn != 1) return [];
+  final playerHand = ref.watch(handProvider(1)).cards;
+  if (playerHand.any((element) =>
+      element.symbol == Symbol.clubs && element.value == CardValue.two)) {
+    return playerHand
+        .where((element) =>
+            element.symbol == Symbol.clubs && element.value == CardValue.two)
+        .toList();
+  }
+  final tableSymbol = ref.watch(tableSymbolProvider);
+  final hasSymbol = playerHand.any((element) => element.symbol == tableSymbol);
+  print(tableSymbol);
+  print(hasSymbol);
+  if (tableSymbol == null || !hasSymbol) {
+    final heartsBroken = ref.watch(heartsBrokenProvider);
+    if (heartsBroken) {
+      return playerHand;
+    }
+    if (!playerHand.any((element) => element.symbol != Symbol.heart)) {
+      return playerHand;
+    }
+    return playerHand
+        .where((element) => element.symbol != Symbol.heart)
+        .toList();
+  } else {
+    return playerHand
+        .where((element) => element.symbol == tableSymbol)
+        .toList();
+  }
 });
 
 class CardInTable {

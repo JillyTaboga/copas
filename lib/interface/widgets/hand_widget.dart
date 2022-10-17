@@ -4,6 +4,7 @@ import 'package:copas/domain/entities/hand_entity.dart';
 import 'package:copas/interface/controllers/card_to_passs_controller.dart';
 import 'package:copas/interface/controllers/game_controller.dart';
 import 'package:copas/interface/controllers/hand_controller.dart';
+import 'package:copas/interface/controllers/turn_controller.dart';
 import 'package:copas/interface/game_screen.dart';
 import 'package:copas/interface/widgets/card_back.dart';
 import 'package:copas/interface/widgets/card_widget.dart';
@@ -23,6 +24,7 @@ class PlayerHandWidget extends HookConsumerWidget {
     final hand = ref.watch(handProvider(playerId));
     final matchPhase = ref.watch(matchProvider);
     final turnPhase = ref.watch(turnPhaseProvider);
+    final playerPhase = ref.watch(turnProvider);
     return HandWidget(
       hand: hand,
       isPlayer: playerId == 1,
@@ -31,6 +33,14 @@ class PlayerHandWidget extends HookConsumerWidget {
               if (matchPhase == MatchPhase.passing &&
                   turnPhase == TurnPhase.start) {
                 ref.read(cardsToPassProvider.notifier).addCard(card);
+              }
+              if (matchPhase == MatchPhase.playing &&
+                  turnPhase == TurnPhase.playing &&
+                  playerPhase == 1) {
+                final possibleCards = ref.read(possibleCardsProvider);
+                if (possibleCards.contains(card)) {
+                  ref.read(cardsInTableProvider.notifier).playCard(1, card);
+                }
               }
             }
           : null,
@@ -66,6 +76,13 @@ class HandWidget extends HookConsumerWidget {
           : ((-12.0 * (sortedHand.length / 2)) + (12 * (index + 1)));
       final selectedCard = ref.watch(selectedCardProvider);
       final isSelected = selectedCard == e;
+      final possibleCards = ref.watch(possibleCardsProvider);
+      final playerTurn = ref.watch(turnProvider);
+      final turnPhase = ref.watch(turnPhaseProvider);
+      final isPossible = ((possibleCards.contains(e) &&
+              playerTurn == 1 &&
+              turnPhase == TurnPhase.playing) ||
+          (isSelected && turnPhase != TurnPhase.playing));
       return CardInHand(
         card: e,
         child: Align(
@@ -76,9 +93,9 @@ class HandWidget extends HookConsumerWidget {
             turns: cardAngle / 360,
             child: AnimatedSlide(
               duration: const Duration(milliseconds: 150),
-              offset: isSelected ? const Offset(-0.1, -0.1) : Offset.zero,
+              offset: isPossible ? const Offset(-0.1, -0.1) : Offset.zero,
               child: SizedCard(
-                isSelected: isSelected,
+                isSelected: isPossible,
                 onCardClick: onCardClick,
                 card: e,
                 isPlayer: isPlayer,
