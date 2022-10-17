@@ -9,5 +9,5 @@ final handProvider = StateProvider.family<HandEntity, int>((ref, player) {
 });
 
 final selectedCardProvider = StateProvider<CardEntity?>((ref) {
-  return;
+  return null;
 });

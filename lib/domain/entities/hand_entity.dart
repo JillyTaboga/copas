@@ -1,4 +1,6 @@
 import 'package:copas/domain/entities/card_entity.dart';
+import 'package:copas/domain/entities/card_values.dart';
+import 'package:copas/domain/entities/simbols.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'hand_entity.freezed.dart';
@@ -11,4 +13,6 @@ class HandEntity with _$HandEntity {
   }) = _HandEntity;
 
   int get handSize => cards.length;
+  bool hasStart() => cards.any((element) =>
+      element.symbol == Symbol.clubs && element.value == CardValue.two);
 }

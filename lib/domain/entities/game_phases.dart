@@ -8,13 +8,13 @@ enum GamePhase {
 enum MatchPhase {
   start,
   distributing,
+  passing,
   playing,
   pointsReview,
 }
 
 enum TurnPhase {
   start,
-  playerTurn,
-  computerTurn,
+  playing,
   review,
 }

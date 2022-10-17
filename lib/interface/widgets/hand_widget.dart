@@ -1,6 +1,7 @@
 import 'package:copas/domain/entities/card_entity.dart';
 import 'package:copas/domain/entities/game_phases.dart';
 import 'package:copas/domain/entities/hand_entity.dart';
+import 'package:copas/interface/controllers/card_to_passs_controller.dart';
 import 'package:copas/interface/controllers/game_controller.dart';
 import 'package:copas/interface/controllers/hand_controller.dart';
 import 'package:copas/interface/game_screen.dart';
@@ -20,7 +21,6 @@ class PlayerHandWidget extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, ref) {
     final hand = ref.watch(handProvider(playerId));
-    final handNotifier = ref.watch(handProvider(playerId).notifier);
     final matchPhase = ref.watch(matchProvider);
     final turnPhase = ref.watch(turnPhaseProvider);
     return HandWidget(
@@ -28,7 +28,7 @@ class PlayerHandWidget extends HookConsumerWidget {
       isPlayer: playerId == 1,
       onCardClick: playerId == 1
           ? (card) {
-              if (matchPhase == MatchPhase.playing &&
+              if (matchPhase == MatchPhase.passing &&
                   turnPhase == TurnPhase.start) {
                 ref.read(cardsToPassProvider.notifier).addCard(card);
               }
@@ -88,14 +88,6 @@ class HandWidget extends HookConsumerWidget {
         ),
       );
     }).toList();
-
-    // if (selectedCard != null) {
-    //   final selectedCardInHand = handWidget
-    //       .firstWhereOrNull((element) => element.card == selectedCard);
-    //   if (selectedCardInHand != null) {
-    //     handWidget.add(selectedCardInHand);
-    //   }
-    // }
 
     return handWidget.map((e) => e.child).toList();
   }
