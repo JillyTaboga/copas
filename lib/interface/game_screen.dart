@@ -1,5 +1,6 @@
 import 'package:copas/domain/entities/game_phases.dart';
 import 'package:copas/domain/use_cases/choose_card_to_pass.dart';
+import 'package:copas/interface/controllers/deck_controller.dart';
 import 'package:copas/interface/controllers/game_controller.dart';
 import 'package:copas/interface/controllers/turn_controller.dart';
 import 'package:copas/interface/widgets/card_widget.dart';
@@ -34,7 +35,7 @@ class GameScreen extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     ref.listen(turnProvider, (oldState, newState) {
-      if (newState != oldState && newState != 1) {
+      if (newState != 1 && newState != 0) {
         CpuAi.playACard(ref);
       }
     });
@@ -75,8 +76,8 @@ class GameCenter extends HookConsumerWidget {
           ? const DistributingWidget()
           : Stack(
               children: [
-                HandsCenter(screenSize: screenSize),
                 if (matchPhase == MatchPhase.playing) const TableCardsWidget(),
+                HandsCenter(screenSize: screenSize),
                 if (matchPhase == MatchPhase.playing &&
                     turnPhase == TurnPhase.playing) ...[
                   Positioned(
@@ -91,11 +92,129 @@ class GameCenter extends HookConsumerWidget {
                     ),
                   )
                 ],
+                Positioned(
+                  right: 10,
+                  top: 10,
+                  child: ElevatedButton(
+                    child: const Icon(Icons.refresh),
+                    onPressed: () {
+                      showDialog(
+                        context: context,
+                        builder: (_) => const Dialog(
+                          child: PassedHands(),
+                        ),
+                      );
+                    },
+                  ),
+                ),
                 if (matchPhase == MatchPhase.passing &&
                     turnPhase == TurnPhase.start)
                   PassWidget(directionPhase: directionPhase)
               ],
             ),
+    );
+  }
+}
+
+class PassedHands extends HookConsumerWidget {
+  const PassedHands({super.key});
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Padding(
+      padding: const EdgeInsets.all(15.0),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            'Últimas rodadas:',
+            style: Theme.of(context).textTheme.titleSmall,
+          ),
+          const SizedBox(
+            height: 15,
+          ),
+          Table(
+            defaultColumnWidth: const IntrinsicColumnWidth(),
+            border: TableBorder.all(
+              color: Colors.black,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            children: [
+              const TableRow(
+                decoration: BoxDecoration(),
+                children: [
+                  TableCell(
+                    child: Padding(
+                      padding: EdgeInsets.all(8.0),
+                      child: Text('Jogador:'),
+                    ),
+                  ),
+                  TableCell(
+                    child: Padding(
+                      padding: EdgeInsets.all(8.0),
+                      child: Text(
+                        'Cartas:',
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+                  TableCell(
+                    child: Padding(
+                      padding: EdgeInsets.all(8.0),
+                      child: Text(
+                        'Pontos:',
+                        textAlign: TextAlign.right,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              ...List.generate(4, (index) {
+                return TableRow(children: [
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: TableCell(
+                      child: Text(
+                        playerName(index + 1),
+                      ),
+                    ),
+                  ),
+                  TableCell(
+                    child: ProviderScope(
+                      overrides: [
+                        cardSizeProvider.overrideWithValue(const Size(30, 45)),
+                      ],
+                      child: Column(
+                        children: ref
+                            .watch(cardsCatchedProvider(index + 1))
+                            .map(
+                              (list) => Row(
+                                children: list
+                                    .map((e) => SizedBox(
+                                          width: 30,
+                                          height: 45,
+                                          child: CardWidget(
+                                            card: e,
+                                            isHover: false,
+                                          ),
+                                        ))
+                                    .toList(),
+                              ),
+                            )
+                            .toList(),
+                      ),
+                    ),
+                  ),
+                  TableCell(
+                    child: Text(
+                      playerName(index + 1),
+                    ),
+                  ),
+                ]);
+              }),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }
@@ -109,7 +228,19 @@ class TableCardsWidget extends HookConsumerWidget {
   Widget build(BuildContext context, ref) {
     final cardSize = ref.watch(cardSizeProvider);
     final tableCards = ref.watch(cardsInTableProvider);
-    return Center(
+    final turnPhase = ref.watch(turnPhaseProvider);
+    final catchPlayed = ref.watch(lastCatchProvider);
+    return AnimatedAlign(
+      duration: const Duration(milliseconds: 300),
+      alignment: turnPhase == TurnPhase.review
+          ? catchPlayed == 1
+              ? Alignment.bottomCenter
+              : catchPlayed == 2
+                  ? Alignment.centerRight
+                  : catchPlayed == 3
+                      ? Alignment.topCenter
+                      : Alignment.centerLeft
+          : Alignment.center,
       child: SizedBox(
         width: cardSize.height,
         height: cardSize.height,

@@ -68,10 +68,22 @@ class CpuAi {
     return realCardsToPass;
   }
 
-  static _greaterCardFromManyDecks(List<List<CardEntity>> decks) {
-    decks.sort((a, b) => a.length.compareTo(b.length));
-    decks.first.sort((a, b) => a.value.value.compareTo(b.value.value));
-    return decks.first.last;
+  static CardEntity _greaterCardFromManyDecks(List<List<CardEntity>> decks) {
+    List<CardEntity> sum = [];
+    for (final deck in decks) {
+      sum.addAll(deck);
+    }
+    sum.sort((a, b) => a.value.value.compareTo(b.value.value));
+    return sum.last;
+  }
+
+  static CardEntity _smallCardFromManyDecks(List<List<CardEntity>> decks) {
+    List<CardEntity> sum = [];
+    for (final deck in decks) {
+      sum.addAll(deck);
+    }
+    sum.sort((a, b) => a.value.value.compareTo(b.value.value));
+    return sum.first;
   }
 
   static playACard(WidgetRef ref) async {
@@ -158,7 +170,7 @@ class CpuAi {
           play(badSpades.last);
           return;
         }
-        if ((heartsBroken || currentHand.cards.length > heartsCards.length) &&
+        if ((heartsBroken || currentHand.cards.length <= heartsCards.length) &&
             heartsCards.isNotEmpty) {
           play(
             heartsCards.last,
@@ -175,13 +187,24 @@ class CpuAi {
         return;
       }
     } else {
-      play(
-        _greaterCardFromManyDecks([
-          spadesCards,
-          diamondsCards,
-          clubsCards,
-        ]),
-      );
+      if (heartsBroken || currentTable.length <= heartsCards.length) {
+        play(
+          _smallCardFromManyDecks([
+            spadesCards,
+            diamondsCards,
+            clubsCards,
+            heartsCards,
+          ]),
+        );
+      } else {
+        play(
+          _smallCardFromManyDecks([
+            spadesCards,
+            diamondsCards,
+            clubsCards,
+          ]),
+        );
+      }
     }
   }
 }

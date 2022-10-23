@@ -2,6 +2,7 @@ import 'package:copas/domain/entities/card_entity.dart';
 import 'package:copas/domain/entities/card_values.dart';
 import 'package:copas/domain/entities/game_phases.dart';
 import 'package:copas/domain/entities/simbols.dart';
+import 'package:copas/interface/controllers/deck_controller.dart';
 import 'package:copas/interface/controllers/game_controller.dart';
 import 'package:copas/interface/controllers/hand_controller.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -28,7 +29,11 @@ final starterPlayerProvider = StateProvider<int>((ref) {
 
 final currentPlayerNameProvider = Provider<String>((ref) {
   final currentPlayer = ref.watch(turnProvider);
-  switch (currentPlayer) {
+  return playerName(currentPlayer);
+});
+
+String playerName(int player) {
+  switch (player) {
     case 1:
       return 'Jogador';
     case 2:
@@ -40,7 +45,7 @@ final currentPlayerNameProvider = Provider<String>((ref) {
     default:
       return '';
   }
-});
+}
 
 final turnProvider = StateNotifierProvider<TurnNotifier, int>((ref) {
   return TurnNotifier(ref);
@@ -51,7 +56,7 @@ class TurnNotifier extends StateNotifier<int> {
 
   final Ref ref;
 
-  _start(int player) {
+  start(int player) {
     ref.read(starterPlayerProvider.notifier).state = player;
     state = player;
   }
@@ -59,29 +64,29 @@ class TurnNotifier extends StateNotifier<int> {
   setStartPlayer() {
     final player = ref.read(handProvider(1));
     if (player.hasStart()) {
-      _start(1);
+      start(1);
       return;
     }
     final cpu1 = ref.read(handProvider(2));
     if (cpu1.hasStart()) {
-      _start(2);
+      start(2);
       return;
     }
     final cpu2 = ref.read(handProvider(3));
     if (cpu2.hasStart()) {
-      _start(3);
+      start(3);
       return;
     }
     final cpu3 = ref.read(handProvider(4));
     if (cpu3.hasStart()) {
-      _start(4);
+      start(4);
       return;
     }
   }
 
   advance() {
     if (state == ref.read(lastPlayerProvider)) {
-      ref.read(turnPhaseProvider.notifier).state = TurnPhase.review;
+      ref.read(cardsInTableProvider.notifier).distribute();
     } else {
       int next = state + 1;
       if (next == 5) {
@@ -91,6 +96,10 @@ class TurnNotifier extends StateNotifier<int> {
     }
   }
 }
+
+final lastCatchProvider = StateProvider<int>((ref) {
+  return 0;
+});
 
 final cardsInTableProvider =
     StateNotifierProvider<CardsInTableNotifier, List<CardInTable>>((ref) {
@@ -109,6 +118,9 @@ class CardsInTableNotifier extends StateNotifier<List<CardInTable>> {
     final hand = ref.read(handProvider(player));
     var cards = [...hand.cards];
     cards.remove(card);
+    if (card.symbol == Symbol.heart) {
+      ref.read(heartsBrokenProvider.notifier).state = true;
+    }
     ref.read(handProvider(player).notifier).state = hand.copyWith(cards: cards);
     ref.read(turnProvider.notifier).advance();
     state = [
@@ -118,6 +130,36 @@ class CardsInTableNotifier extends StateNotifier<List<CardInTable>> {
         playedBy: player,
       ),
     ];
+  }
+
+  distribute() async {
+    await Future.delayed(const Duration(milliseconds: 10));
+    ref.read(turnProvider.notifier).start(0);
+    final tableSymbol = state.first.card.symbol;
+    final cards = [
+      ...state.where((element) => element.card.symbol == tableSymbol).toList()
+    ];
+    cards.sort((a, b) => a.card.value.value.compareTo(b.card.value.value));
+    final hightCard = cards.last;
+    ref.read(lastCatchProvider.notifier).state = hightCard.playedBy;
+    ref.read(turnPhaseProvider.notifier).state = TurnPhase.review;
+    await Future.delayed(const Duration(milliseconds: 290));
+    final currentCardsCatched =
+        ref.read(cardsCatchedProvider(hightCard.playedBy));
+    ref.read(cardsCatchedProvider(hightCard.playedBy).notifier).state = [
+      ...currentCardsCatched,
+      cards.map((e) => e.card).toList()
+    ];
+    if (ref.read(handProvider(1)).handSize == 0) {
+      ref.read(matchProvider.notifier).state = MatchPhase.distributing;
+      ref.read(turnPhaseProvider.notifier).state = TurnPhase.start;
+      ref.read(deckProvider.notifier).newHand();
+      ref.read(matchProvider.notifier).state = MatchPhase.passing;
+    } else {
+      ref.read(turnPhaseProvider.notifier).state = TurnPhase.playing;
+      ref.read(turnProvider.notifier).start(hightCard.playedBy);
+    }
+    state = [];
   }
 }
 
@@ -139,9 +181,7 @@ final possibleCardsProvider = Provider<List<CardEntity>>((ref) {
   }
   final tableSymbol = ref.watch(tableSymbolProvider);
   final hasSymbol = playerHand.any((element) => element.symbol == tableSymbol);
-  print(tableSymbol);
-  print(hasSymbol);
-  if (tableSymbol == null || !hasSymbol) {
+  if (tableSymbol == null) {
     final heartsBroken = ref.watch(heartsBrokenProvider);
     if (heartsBroken) {
       return playerHand;
@@ -152,10 +192,12 @@ final possibleCardsProvider = Provider<List<CardEntity>>((ref) {
     return playerHand
         .where((element) => element.symbol != Symbol.heart)
         .toList();
-  } else {
+  } else if (hasSymbol) {
     return playerHand
         .where((element) => element.symbol == tableSymbol)
         .toList();
+  } else {
+    return playerHand;
   }
 });
 
